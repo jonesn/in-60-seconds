@@ -4,21 +4,19 @@
 
 ## At A Glance
 
-@color[green](Deployment)
-@color[green](Monitoring)
-@color[orange](Code Clarity)
-@color[orange](Complexity)
-@color[red](Performance)
-@color[red](Intrinsic Behaviour)
+ * @color[green](Deployment)
+ * @color[green](Monitoring)
+ * @color[orange](Code Clarity)
+ * @color[orange](Complexity)
+ * @color[red](Performance)
+ * @color[red](Intrinsic Behaviour)
 
 ---
 
 ## Time
 
 ```java
-public static void main(String[] args) {
-    
-}
+public static void main(String[] args) {}
 ```
 
 ---
@@ -28,6 +26,13 @@ public static void main(String[] args) {
 ---
 
 ## Triggers
+
+---
+
+## Intrinsic Behaviour
+
+---
+
 
 @snap[east span-50]
 ![](assets/img/presentation.png)
