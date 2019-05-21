@@ -15,8 +15,39 @@
 
 ## Time
 
+```plsql
+SELECT TRUNC(TIMESTAMP '2018-01-01 13:14:15','hh') + 
+       TRUNC(TO_CHAR(TIMESTAMP '2018-01-01 13:14:15','MI')/30)*30/60/24 
+  FROM dual
+```
+
 ```java
-public static void main(String[] args) {}
+    private static LocalDateTime executeADeepArithmeticCallWithNulls(LocalDateTime mktPeriod) {
+        return localDateTimeAdd(trunc(mktPeriod, "hh"),
+                bigDecimalDivide(
+                        bigDecimalDivide(
+                                bigDecimalMultiply(
+                                        trunc(bigDecimalDivide(
+                                                        makeNewLong(BaseUtil.toChar(mktPeriod, "MI")),
+                                                        30L)),
+                                        30L),
+                                makeNewBigDecimal(60L)),
+                        makeNewBigDecimal(24L)));
+    }
+
+    /**
+     * This test represents a check on handling a deeply nested NULL expression containing Date arithmetic.
+     * Specifically: TRUNC(:new.MktPeriod,'hh') + TRUNC(TO_CHAR(:new.MktPeriod,'MI')/30)*30/60/24
+     */
+    @Test
+    public void testDateArithmeticOperationsWillShortCircuitOnNull() {
+        assertNull(executeADeepArithmeticCallWithNulls(null));
+        // SELECT TRUNC(TIMESTAMP '2018-01-01 13:14:15','hh') + TRUNC(TO_CHAR(TIMESTAMP '2018-01-01 13:14:15','MI')/30)*30/60/24 FROM dual
+        // 2018-01-01 13:00:00
+        LocalDateTime expected = ldt("2018-01-01T13:00:00");
+        LocalDateTime input = ldt("2018-01-01T13:14:15");
+        assertEquals(expected, executeADeepArithmeticCallWithNulls(input));
+    }
 ```
 
 ---
