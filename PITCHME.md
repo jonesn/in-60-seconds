@@ -13,13 +13,17 @@
 
 ---
 
-## Time
+## Time And Numerics One Null Chaining
 
-```plsql
+### PLSQL
+
+```sql
 SELECT TRUNC(TIMESTAMP '2018-01-01 13:14:15','hh') + 
        TRUNC(TO_CHAR(TIMESTAMP '2018-01-01 13:14:15','MI')/30)*30/60/24 
   FROM dual
 ```
+
+### Java
 
 ```java
     private static LocalDateTime executeADeepArithmeticCallWithNulls(LocalDateTime mktPeriod) {
@@ -52,7 +56,67 @@ SELECT TRUNC(TIMESTAMP '2018-01-01 13:14:15','hh') +
 
 ---
 
-## Numerics
+## Numerics Fraction Of A Day
+
+### PLSQL
+
+```sql
+SELECT TRUNC(SYSDATE) + 1/86400 FROM dual
+/
+
+-- 2019-05-22 00:00:01
+
+-- One Second Fraction Of a Day
+SELECT 1/86400 FROM dual
+/
+
+-- 0.00001157407407407407407407407407407407407407
+```
+
+### Java
+
+Introduction of Oracle Like Math Contexts for Numeric Precision
+
+```java
+    // ===================================================
+    //                     Math Contexts
+    // ===================================================
+
+    // Line up with Oracle Decimal Results
+    // Oracle returns decimal value which has 44 digits after '.' for date comparing, e.g.
+    // select (to_date('2009-07-07 22:00:01', 'YYYY-MM-DD hh24:mi:ss') - to_date('2009-07-07 22:00:00', 'YYYY-MM-DD hh24:mi:ss')) as result from dual;
+    // 0.0000115740740740740740740740740740740740
+    private static final int BIG_DECIMAL_SCALE = 45; // The 45 is correct
+    private static final RoundingMode BIG_DECIMAL_ROUNDING = RoundingMode.HALF_UP;
+    private static final MathContext ORACLE_DECIMAL_STYLE_CONTEXT = new MathContext(BIG_DECIMAL_SCALE, BIG_DECIMAL_ROUNDING);
+
+    // INTs in PLSQL are an alias for NUMBER(38).
+    // If we retain more precision than that then become too accurate and get inconsistent results especially on Date
+    // Arithmetic.
+    private static final int LONG_SCALE = 39; // The 39 is correct
+    private static final MathContext ORACLE_INT_STYLE_CONTEXT = new MathContext(LONG_SCALE, BIG_DECIMAL_ROUNDING);
+```
+
+### Java Translation To Durations
+
+```java
+    // ======================
+    // Minute Based Durations
+    // ======================
+
+    // 1d / (60d * 24d)
+    // 1d / 1440d
+    public static final Duration ONE_MINUTE = Duration.ofMinutes(1L);
+    public static final BigDecimal BD_ONE_MINUTE = new BigDecimal(1d / 1440d);
+
+    // 5d / (60d * 24d)
+    // 5d / 60d / 24d
+    // 5d / 1440d
+    // 1d / 24d / 2d/ 6d
+    // 1d / 48d/ 6d
+    public static final Duration FIVE_MINUTES = Duration.ofMinutes(5L);
+    public static final BigDecimal BD_FIVE_MINUTES = new BigDecimal(5d / 1440d);
+```
 
 ---
 
