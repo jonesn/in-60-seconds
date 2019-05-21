@@ -1,17 +1,33 @@
-# Let's Get Started
+# Simplification Code
 
 ---
 
-## Add Some Slide Candy
+## At A Glance
 
-![](assets/img/presentation.png)
+@color[green](Deployment)
+@color[green](Monitoring)
+@color[orange](Code Clarity)
+@color[orange](Complexity)
+@color[red](Performance)
+@color[red](Intrinsic Behaviour)
 
 ---
-@title[Customize Slide Layout]
 
-@snap[west span-50]
-## Customize Slide Content Layout
-@snapend
+## Time
+
+```java
+public static void main(String[] args) {
+    
+}
+```
+
+---
+
+## Numerics
+
+---
+
+## Triggers
 
 @snap[east span-50]
 ![](assets/img/presentation.png)
