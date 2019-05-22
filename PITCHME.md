@@ -132,12 +132,11 @@ Introduction of Oracle Like Math Contexts for Numeric Precision
 
 ```sql
 UPDATE MktCase
-               SET    CaseState          = WorkflowQ.gStateSolved,
-                      ExecutionDuration  = ROUND((Timepac.GetGmtDate - ExecutionTime) * WorkflowQ.gDaySeconds)
-               WHERE  CaseID             = pCaseID;
-
-               vMessage := '@Case(' || vCaseName || ') ' || pCaseID || ' SOLVED';
-               WorkflowQ.UserCaseMessage (pCaseID, 'Case', vMessage);
+   SET    CaseState          = WorkflowQ.gStateSolved,
+          ExecutionDuration  = ROUND((Timepac.GetGmtDate - ExecutionTime) * WorkflowQ.gDaySeconds)
+   WHERE  CaseID             = pCaseID;
+vMessage := '@Case(' || vCaseName || ') ' || pCaseID || ' SOLVED';
+WorkflowQ.UserCaseMessage (pCaseID, 'Case', vMessage);
 ```
 
 ### PLSQL Trigger
@@ -166,7 +165,7 @@ END MktCase_AR_OverrideSet;
 /
 ```
 
-### Java Call
+### Java Call In Workflow
 
 ```java
 rowcount = new Long(mktcasedao.update_12(workflowq.GSTATESOLVED(), workflowq.GDAYSECONDS(), PCASEID));
@@ -235,46 +234,73 @@ public int update_12(BigDecimal GSTATESOLVED,
     }
 ```
 
+### Java The SQL in Mybatis
+
+```xml
+<select id='sql_update_13_old_rows' parameterType='nz.co.transpower.market.mbl.dao.MKTCASEDAO$Update11Dto' resultType='nz.co.transpower.market.mbl.domain.MKTCASEVO'>
+    <![CDATA[ SELECT * FROM MKTCASE  WHERE CASEID = #{pcaseid}]]>
+</select>
+
+<update id='sql_update_11' parameterType='nz.co.transpower.market.mbl.domain.MKTCASEVO'>
+    <![CDATA[UPDATE MKTCASE  SET caseid = #{caseid}, studymodeid = #{studymodeid}, casestate = #{casestate}, savecaseid = #{savecaseid}, ctgsavecaseid = #{ctgsavecaseid}, overridesetid = #{overridesetid}, casename = #{casename}, description = #{description}, mktday = #{mktday}, casestarttime = #{casestarttime}, caseendtime = #{caseendtime}, casestartinterval = #{casestartinterval}, caseendinterval = #{caseendinterval}, casestartperiod = #{casestartperiod}, caseendperiod = #{caseendperiod}, intervalcount = #{intervalcount}, archiveiteration = #{archiveiteration}, archivedtime = #{archivedtime}, processiteration = #{processiteration}, executiontime = #{executiontime}, executionduration = #{executionduration}, username = #{username}, maxsftiteration = #{maxsftiteration}, sftmode = #{sftmode}, loadsensitivity = #{loadsensitivity}, autoapprove = #{autoapprove}, iscasetemplate = #{iscasetemplate}, parentcaseid = #{parentcaseid}, loadforcastday = #{loadforcastday}, deltamw = #{deltamw}, generationscenarioid = #{generationscenarioid}, dcsensitivities = #{dcsensitivities}, shadowandreduceddata = #{shadowandreduceddata}, sensitivitydata = #{sensitivitydata}, queuepriority = #{queuepriority}, continuation = #{continuation}, adhoc = #{adhoc}, sftdconly = #{sftdconly}, loaddeltapercenthi = #{loaddeltapercenthi}, loaddeltapercentlo = #{loaddeltapercentlo}, runsrc = #{runsrc}, substudymodeid = #{substudymodeid}, substudyselected = #{substudyselected}, autopublish = #{autopublish}, autoarchive = #{autoarchive}, archivestatus = #{archivestatus}, publishstatus = #{publishstatus}, usesftconstraint = #{usesftconstraint}, batchid = #{batchid}, generationofferday = #{generationofferday}, loadoffset = #{loadoffset}, usemv90override = #{usemv90override}, usemtlf = #{usemtlf}, publishallowed = #{publishallowed}, createdby = #{createdby}, createddate = #{createddate}, modifiedby = #{modifiedby}, modifieddate = #{modifieddate}, auditosuser = #{auditosuser}, auditmodule = #{auditmodule}, audithost = #{audithost}, sftnbt = #{sftnbt}, casegroupid = #{casegroupid}, exportsnapshotscn = #{exportsnapshotscn}, fpcasetype = #{fpcasetype}, initialfpcaseid = #{initialfpcaseid}, rassavecaseid = #{rassavecaseid} WHERE CASEID = #{caseid}]]>
+  </update>
+```
+
+### Java Trigger Source
+
+```java
+@Component
+public class MKTCASE_AR_OVERRIDESET {
+    private static final Logger     logger   = LoggerFactory.getLogger(MKTCASE_AR_OVERRIDESET.class);
+    private Long                    rowcount = -1L;
+    private final OVERRIDE          override;
+    private final MKTOVERRIDESETDAO mktoverridesetdao;
+
+    @Autowired
+    public MKTCASE_AR_OVERRIDESET(OVERRIDE          override,
+                                  MKTOVERRIDESETDAO mktoverridesetdao) {
+        this.override          = override;
+        this.mktoverridesetdao = mktoverridesetdao;
+    }
+
+    public void execute(CrudMode  crudMode,
+                        MKTCASEVO new_record,
+                        MKTCASEVO old_record) {
+        if (CrudMode.isINSERTING(crudMode) ||
+                CrudMode.isDELETING(crudMode) ||
+                (CrudMode.isUPDATING(crudMode) && new_record.isAltered("CASESTARTTIME", "CASEENDTIME", "OVERRIDESETID", "CASENAME"))) {
+
+            // Add the override set to the list to be processed in the after statement trigger
+            if (nvl(new_record.getOverridesetid(), old_record.getOverridesetid()) != null) {
+                override.OVRDADD(nvl(new_record.getOverridesetid(), old_record.getOverridesetid()));
+
+                if (isNotNull(new_record) &&
+                        isNotNull(new_record.getOverridesetid()) &&
+                        isNotEqual(nvl(new_record.getCasename(), old_record.getCasename()),
+                                   nvl(old_record.getCasename(), new_record.getCasename())))    // fix override set name
+                                   {
+                    rowcount = new Long(mktoverridesetdao.update_6(new_record.getCasename(), new_record.getOverridesetid()));
+                }
+            }
+        }
+    }
+}
+```
 
 ---
 
 ## Intrinsic Behaviour
 
-### Sessions 
+### Sessions Old
 
----
+```
+AIE => OCI => Packages.
+```
 
+### Sessions New
 
-@snap[east span-50]
-![](assets/img/presentation.png)
-@snapend
+```
+Client => HTTP Rest => Openshift => Infinispan => JDBC Connection Pool => Oracle 
+```
 
----?color=#E58537
-@title[Add A Little Imagination]
-
-@snap[north-west]
-#### Add a splash of @color[cyan](**color**) and you are ready to start presenting...
-@snapend
-
-@snap[west span-55]
-@ul[spaced text-white]
-- You will be amazed
-- What you can achieve
-- *With a little imagination...*
-- And **GitPitch Markdown**
-@ulend
-@snapend
-
-@snap[east span-45]
-@img[shadow](assets/img/conference.png)
-@snapend
-
----?image=assets/img/presenter.jpg
-
-@snap[north span-100 headline]
-## Now It's Your Turn
-@snapend
-
-@snap[south span-100 text-06]
-[Click here to jump straight into the interactive feature guides in the GitPitch Docs @fa[external-link]](https://gitpitch.com/docs/getting-started/tutorial/)
-@snapend
+### Transactions
