@@ -122,9 +122,125 @@ Introduction of Oracle Like Math Contexts for Numeric Precision
 
 ## Triggers
 
+  * Part 1: The dispatch of them, I.e. When does a trigger fire? DAO per Table.
+  * Part 2: The providing of old rows default values in records.
+  * Part 3: The logic.
+
+## Example Workflow Status Update
+
+### PLSQL Update Statement
+
+```sql
+UPDATE MktCase
+               SET    CaseState          = WorkflowQ.gStateSolved,
+                      ExecutionDuration  = ROUND((Timepac.GetGmtDate - ExecutionTime) * WorkflowQ.gDaySeconds)
+               WHERE  CaseID             = pCaseID;
+
+               vMessage := '@Case(' || vCaseName || ') ' || pCaseID || ' SOLVED';
+               WorkflowQ.UserCaseMessage (pCaseID, 'Case', vMessage);
+```
+
+### PLSQL Trigger
+
+```sql
+create trigger MKTCASE_AR_OVERRIDESET
+  after insert or update of OVERRIDESETID,CASENAME,CASESTARTTIME,CASEENDTIME or delete
+  on MKTCASE
+  for each row
+BEGIN
+--
+-- Add the override set to the list to be processed in the after statement trigger
+--
+  If nvl(:new.OverrideSetID, :old.OverrideSetID) is not null Then
+    Override.OvrdAdd(nvl(:new.OverrideSetID, :old.OverrideSetID));
+
+    If :new.OverrideSetID is not null and
+       nvl(:new.CaseName, :old.CaseName) <> nvl(:old.CaseName, :new.CaseName) Then -- fix override set name
+       Update MktOverrideset set
+              Name = :new.CaseName
+        where OverrideSetID = :new.OverrideSetID;
+    end if;
+
+  end if;
+END MktCase_AR_OverrideSet;
+/
+```
+
+### Java Call
+
+```java
+rowcount = new Long(mktcasedao.update_12(workflowq.GSTATESOLVED(), workflowq.GDAYSECONDS(), PCASEID));
+                    VMESSAGE = "@Case(" + VCASENAME + ") " + PCASEID + " SOLVED";
+                    workflowq.USERCASEMESSAGE(PCASEID, "Case", VMESSAGE, "Info");
+```
+
+### Java SQL Dispatch
+
+```java
+public int update_12(BigDecimal GSTATESOLVED,
+                         BigDecimal GDAYSECONDS,
+                         BigDecimal pcaseid) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("update_12(" + "GSTATESOLVED: " + toStr(GSTATESOLVED) +
+                                        ", GDAYSECONDS: " + toStr(GDAYSECONDS) +
+                                        ", pcaseid: " + toStr(pcaseid) + ")");
+        }
+
+        Update11Dto input = new Update11Dto();
+        input.setCasestate(GSTATESOLVED);
+        input.setGdayseconds(GDAYSECONDS);
+        input.setPcaseid(pcaseid);
+        return update(SQL_UPDATE_11,
+                      new TriggerRowSupplier<MKTCASEVO>() {
+                          @Override
+                          public List<MKTCASEVO> getOldRows() {
+                              return query(SQL_UPDATE_13_old_rows, input);
+                          }
+                          @Override
+                          public MKTCASEVO makeNewRow(MKTCASEVO oldRecord) {
+                              MKTCASEVO newRow = cloneOldRow(oldRecord);
+                              newRow.setCasestate(input.getCasestate());
+                              newRow.setExecutionduration(
+                                      round(bigDecimalMultiply(
+                                                      (localDateTimeSubtract(com.tsri.lib.tputil.TIMEPAC.GETGMTDATE(),
+                                                                                        oldRecord.getExecutiontime())),
+                                                      input.getGdayseconds())));
+                              return newRow;
+                          }
+                      });
+    }
+```
+
+### Java Trigger Dispatch
+
+```java
+    protected int update(String sqlUpdate, TriggerRowSupplier<R> triggerRowSupplier) {
+        
+        int result = 0;
+
+        List<R> oldVals = triggerRowSupplier.getOldRows();
+        Set<String> alteredFields = makeAlteredFields(sqlUpdate);
+        beforeUpdateStatement(alteredFields);
+        if (!CollectionUtils.isEmpty(oldVals)) {
+            for (int i = 0; i < oldVals.size(); i++) { // VO will need to know its PK and be able to return it.
+                R newVals = triggerRowSupplier.makeNewRow(oldVals.get(i));
+                beforeUpdateRow(oldVals.get(i), newVals); // makeNewRow(sqlUpdate, params, oldVals.get(i)));
+                result += updateCall(sqlUpdate, newVals); // makeRowParams(sqlUpdate, params, oldVals.get(i).pk()));
+                afterUpdateRow(oldVals.get(i), newVals); // makeNewRow(sqlUpdate, params, oldVals.get(i)));
+            }
+        }
+        afterUpdateStatement(alteredFields);
+
+        return result;
+    }
+```
+
+
 ---
 
 ## Intrinsic Behaviour
+
+### Sessions 
 
 ---
 
