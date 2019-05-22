@@ -291,6 +291,95 @@ public class MKTCASE_AR_OVERRIDESET {
 
 ## Intrinsic Behaviour
 
+```sql
+create PACKAGE MdbStatePublic
+  /*  Record and PL/SQL table definitions to sidestep mutating table exception
+      when inserting or updating records in the MktOffer table. */
+  TYPE typOfferCheck IS RECORD (TraderID       MktOffer.TraderID%TYPE,
+                                MktPeriod      MktOffer.MktPeriod%TYPE,
+                                PNodeID        MktOffer.PNodeID%TYPE,
+                                OfferType      MktOffer.OfferType%TYPE,
+                                SubmissionTime MktOffer.SubmissionTime%TYPE);
+  TYPE tabOfferCheck IS TABLE OF typOfferCheck INDEX BY PLS_INTEGER;
+  gtabOffers       tabOfferCheck;
+  gidxOffers       PLS_INTEGER;
+
+  TYPE typBidCheck IS RECORD (TraderID       MktBid.TraderID%TYPE,
+                              MktPeriod      MktBid.MktPeriod%TYPE,
+                              PNodeID        MktBid.PNodeID%TYPE,
+                              BidType        MktBid.BidType%TYPE,
+                              SubmissionTime MktBid.SubmissionTime%TYPE);
+  TYPE tabBidCheck IS TABLE OF typBidCheck INDEX BY PLS_INTEGER;
+  gtabBids       tabBidCheck;
+  gidxBids       PLS_INTEGER;
+
+
+   -- From FrequencyKeeper
+
+   /*  These are used by the constraint application process to sidestep a mutating
+       table exception on the MktFreqScheduleConstraint table. */
+   TYPE typSchedConstraintCall IS RECORD (ConstraintScheduleID MktFreqScheduleConstraint.ConstraintScheduleID%TYPE);
+   TYPE tabSchedConstraintCall IS TABLE OF typSchedConstraintCall INDEX BY PLS_INTEGER;
+
+   /*  These are used by the constraint application process to sidestep a mutating
+       table exception on the MktFreqSchedule table. */
+   TYPE typConstraintCall IS RECORD (FreqScheduleId            MktFreqSchedule.FreqScheduleID%type,
+                                     IslandID                  MktIslandPeriod.IslandID%TYPE,
+                                     MktPeriod                 MktIslandPeriod.MktPeriod%TYPE,
+                                     ConstraintNeededTimestamp MktIslandPeriod.ConstraintNeededTimestamp%TYPE);
+   TYPE tabConstraintCall IS TABLE OF typConstraintCall INDEX BY PLS_INTEGER;
+
+   gtabPeriodsToApply tabConstraintCall;
+   gidxPeriodsToApply PLS_INTEGER;
+
+   gtabSchedConstraintsToRemove tabSchedConstraintCall;
+   gidxSchedConstraintsToRemove PLS_INTEGER;
+
+   -- Should current update to MktDisptach send a event MS.MfkDispatchData.Send.1?
+   gSendMfkDispatchData  BOOLEAN;
+
+
+
+
+   -- From WorkflowQ
+
+--
+-- Debug Options
+--
+   gDebugRefreshTime      DATE := NULL;
+   gDebugLogWorkflow      NUMBER;
+   gDebugLogQueue         NUMBER;
+--
+-- Global Data
+--
+   gSolvingCaseID         NUMBER;
+   gSolvingTaskID         NUMBER;
+   gSolvingIteration      NUMBER;
+   gSolvingCorrelationID  NUMBER := 0;
+   gSolvingConsumerTask   VARCHAR2(100);
+   gSolvingFamily         VARCHAR2(100);
+   gSolvingTaskFamily     VARCHAR2(100);
+   gSolvingStudyMode      VARCHAR2(100);
+
+   gGlobalName            VARCHAR2(100);
+   gUpdatedCaseID         NUMBER;
+
+   -- SFT Defect 79
+   gExcludeSftConstraint  NUMBER := 1;  -- 1 exclude SFT constraints; 0 include
+
+
+   -- HVDC Pole 3 Defect 359
+   gHvdcOutageProcessing  NUMBER := 0;
+
+   -- declare purity of package initializer
+   PRAGMA RESTRICT_REFERENCES(MdbStatePublic, RNDS, RNPS, WNDS, WNPS);
+
+END MdbStatePublic;
+/
+
+
+```
+
 ### Sessions Old
 
 ```
