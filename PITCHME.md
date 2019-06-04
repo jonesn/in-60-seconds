@@ -4,12 +4,12 @@
 
 ## At A Glance
 
- * @color[green](Deployment)
- * @color[green](Monitoring)
- * @color[orange](Code Clarity)
- * @color[orange](Complexity)
- * @color[red](Performance)
- * @color[red](Intrinsic Behaviour)
+ * Deployment will be better
+ * Monitoring will be better
+ * Code Clarity probably worse
+ * Code Complexity probably worse
+ * Performance worse
+ * Intrinsic Behaviour worse
 
 ---
 
